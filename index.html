@@ -500,7 +500,7 @@ $('bar').style.background=remaining<=5?'var(--red)':remaining<=15?'var(--yellow)
 const pl=$('periodLeft');
 if(w.fixed){
 const left=Math.round((w.fixedEnd-w.today)/dayMs);
-pl.textContent=left<=0?'Последний день периода':`До конца периода: ${left} дн.`;
+pl.textContent=left<=0?'Последний день периода':`${left} /180`;
 }else pl.textContent='';
 
 updateSettingsInfo(w);
