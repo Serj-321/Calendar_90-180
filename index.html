@@ -1,0 +1,917 @@
+
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2563eb">
+<meta name="description" content="Календарь учёта дней пребывания по правилу 90/180">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<title>Календарь 90/180</title>
+<style>
+:root{color-scheme:light;--bg:#f3f6fa;--panel:#fff;--text:#182230;--muted:#667085;--line:#e3e8ef;--soft:#eef2f7;--green:#16834a;--green-bg:#e1f4e9;--blue:#2563eb;--blue-bg:#e7efff;--red:#c93636;--bar-green:#62d494;--yellow:#d99a00;--pink:#c2416d;--pink-bg:#fde7ee;--pink-line:#eba5ba;--shadow:0 8px 28px #18223012}
+[data-theme="dark"]{color-scheme:dark;--bg:#222a36;--panel:#313C4D;--text:#f1f5fa;--muted:#b3bdca;--line:#6a778c;--soft:#3a4556;--green:#62d494;--green-bg:#25503c;--blue:#8fb2ff;--blue-bg:#34507f;--pink:#f59ab8;--pink-bg:#58313f;--pink-line:#9a5870;--red:#ff7777;--yellow:#f0b429;--shadow:0 8px 28px #0005}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:920px;margin:0 auto;padding:8px 16px 40px}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.brand{font-size:22px;font-weight:750;letter-spacing:-.5px}
+.sub{color:var(--muted);font-size:13px}
+.page-button{width:40px;height:40px;min-width:40px;aspect-ratio:1/1;padding:0;display:flex;align-items:center;justify-content:center;border-radius:10px}
+.page-button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+select,button,input{font:inherit;color:inherit}
+button,select,input{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 12px}
+button{cursor:pointer}
+button:hover{filter:brightness(.97)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+.stats{margin-bottom:14px}
+.stat,.calendar,.legend,.note,.settings-panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.stat{padding:12px 15px}
+.stat-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.stat-label{font-size:13px;color:var(--muted)}
+.stat-num{font-size:27px;font-weight:750;letter-spacing:-1px;margin:2px 0}
+.stat-foot{font-size:12px;color:var(--muted)}
+.green{color:var(--green)}
+.red{color:var(--red)}
+.stat-side{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.period-left{font-size:12px;color:var(--muted);white-space:nowrap}
+.progress{height:15px;background:var(--soft);border-radius:20px;overflow:hidden;margin-top:8px}
+.progress>i{display:block;height:100%;width:0;background:var(--green);border-radius:20px}
+.stat-switch{padding:6px 11px;font-size:13px;border-radius:9px;background:transparent;border-color:var(--blue);color:var(--blue);white-space:nowrap}
+.stat-content{margin-top:8px}
+
+.calendar{padding:16px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.month{font-size:18px;font-weight:700}
+.nav{display:flex;gap:7px}
+.nav button{min-width:40px;font-size:18px;padding:6px 10px}
+.week,.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.week div{text-align:center;color:var(--muted);font-size:12px;padding:5px 0}
+.day{position:relative;min-height:64px;border:1px solid var(--line);border-radius:11px;background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;user-select:none;touch-action:pan-y;cursor:default}
+.day.blank{border-color:transparent;background:transparent}
+.day .n{font-weight:650}
+.day.trip{background:var(--green-bg);border-color:#80c99e;color:var(--text)}
+.day.trip.open{background:var(--pink-bg);border-color:var(--pink-line)}
+.day.open.arrival:before{color:var(--pink)}
+.day.arrival:before,.day.departure:after{position:absolute;top:4px;font-size:9px;font-weight:800;color:var(--green)}
+.day.arrival:before{content:"ВЪЕЗД";left:4px}
+.day.departure:after{content:"ВЫЕЗД";right:4px}
+.day.today{box-shadow:inset 0 0 0 2px var(--blue)}
+.day.future{opacity:.55}
+.day .dot{font-size:10px;color:var(--muted)}
+
+.legend{display:flex;gap:16px;flex-wrap:wrap;padding:12px 14px;margin-top:12px;box-shadow:none}
+.legend span{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.swatch{width:10px;height:10px;border-radius:3px;background:var(--green-bg);border:1px solid #80c99e}
+.swatch.pink{background:var(--pink-bg);border-color:var(--pink-line)}
+.choice.c-arrival{background:var(--pink-bg);border-color:var(--pink-line)}
+.choice.c-departure{background:var(--green-bg);border-color:#80c99e}
+.outline{width:10px;height:10px;border:2px solid var(--blue);border-radius:3px}
+
+.note{padding:13px 15px;margin-top:12px;box-shadow:none;color:var(--muted);font-size:13px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.primary{background:var(--blue);border-color:var(--blue);color:white}
+.danger{color:var(--red);border-color:#e6a0a0}
+.small{font-size:13px;padding:7px 10px}
+.settings-panel{padding:16px;margin-bottom:12px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}
+.settings-row:last-child{border-bottom:0}
+.settings-label{font-weight:600}
+.settings-description{font-size:12px;color:var(--muted);margin-top:3px}
+.hidden{display:none!important}
+.theme-switch{position:relative;width:64px;height:34px;min-width:64px;padding:0;border-radius:20px;border:1px solid var(--line);background:var(--soft);cursor:pointer;flex:none}
+.theme-switch .ts-icon{position:absolute;top:0;bottom:0;display:flex;align-items:center;font-size:15px;line-height:1;color:var(--muted)}
+.ts-sun{left:9px}.ts-moon{right:9px}
+.ts-knob{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:var(--panel);border:1px solid var(--line);box-shadow:0 1px 4px #0003;transition:transform .2s}
+.theme-switch[aria-checked="true"]{background:var(--blue-bg);border-color:var(--blue)}
+.theme-switch[aria-checked="true"] .ts-knob{transform:translateX(30px)}
+.settings-value{font-weight:700;text-align:right}
+.backup-text{width:100%;min-height:150px;resize:vertical;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);padding:9px 12px;font:12px/1.4 ui-monospace,Consolas,monospace}
+
+dialog{border:1px solid var(--line);border-radius:18px;background:var(--panel);color:var(--text);width:min(440px,calc(100% - 24px));padding:0;box-shadow:0 20px 70px #0005}
+dialog::backdrop{background:#10182880}
+.modal{padding:20px}
+.modal h2{font-size:19px;margin:0 0 4px}
+.modal p{margin:0 0 16px;color:var(--muted);font-size:13px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}
+.choice{padding:13px 10px;text-align:left}
+.choice strong{display:block}
+.choice small{color:var(--muted)}
+.field{display:grid;grid-template-columns:1fr 125px;gap:8px;align-items:center;margin:11px 0}
+.field label{font-size:13px;color:var(--muted)}
+.field input{width:100%}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:17px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#182230;color:white;padding:10px 15px;border-radius:10px;font-size:13px;box-shadow:var(--shadow);z-index:5;max-width:90%;text-align:center}
+
+@media(max-width:560px){
+.wrap{padding:6px 10px 28px}
+.brand{font-size:19px}
+.stat{padding:11px}
+.stat-num{font-size:25px}
+.calendar{padding:10px}
+.week,.days{gap:3px}
+.day{min-height:53px;border-radius:8px}
+.day.arrival:before,.day.departure:after{font-size:7px}
+.day.arrival:before{left:2px}
+.day.departure:after{right:2px}
+.field{grid-template-columns:1fr 112px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+<div>
+<div class="brand" id="pageTitle">Календарь 90/180</div>
+<div class="sub" id="pageSub">Срок пребывания иностр-го гражданина в ЕАЭС</div>
+</div>
+<button id="openSettings" class="page-button" title="Настройки" aria-label="Настройки"><svg id="iconGear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><svg id="iconHome" class="hidden" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></button>
+</header>
+
+<!-- ГЛАВНАЯ -->
+
+<section id="homePage">
+
+<section class="stats">
+<article class="stat">
+
+<div class="stat-head">
+<div class="stat-label" id="statTitle">Календарные дни за последние 180 дней</div>
+<div class="stat-side">
+<button id="toggleMeasure" class="stat-switch" title="Переключить: дни / сутки">Дни</button>
+<div id="periodLeft" class="period-left"></div>
+</div>
+</div>
+
+<div class="stat-content">
+<div class="stat-num" id="calendarCount">0 / 90</div>
+<div class="stat-foot" id="calendarLeft">Осталось 90 дней</div>
+<div class="progress"><i id="bar"></i></div>
+</div>
+
+</article>
+</section>
+
+<section class="calendar">
+<div class="cal-head">
+<div>
+<div class="month" id="monthName"></div>
+<div class="sub">Долгое нажатие на дату — действия</div>
+</div>
+<div class="nav">
+<button id="prev" aria-label="Предыдущий месяц">‹</button>
+<button id="today" class="small">Сегодня</button>
+<button id="next" aria-label="Следующий месяц">›</button>
+</div>
+</div>
+<div class="week" id="week"></div>
+<div class="days" id="days"></div>
+</section>
+
+<div class="legend">
+<span><i class="swatch"></i> Пребывание</span>
+<span><i class="swatch pink"></i> Поездка не закрыта</span>
+<span><i class="outline"></i> Сегодня</span>
+</div>
+
+</section>
+
+<!-- НАСТРОЙКИ -->
+
+<section id="settingsPage" class="hidden">
+
+<div class="settings-panel">
+
+<div class="settings-row">
+<div>
+<div class="settings-label">Оформление</div>
+<div class="settings-description">Светлая или тёмная тема</div>
+</div>
+<button id="themeSwitch" class="theme-switch" role="switch" aria-checked="false" aria-label="Тёмная тема" title="Светлая / тёмная тема"><span class="ts-icon ts-sun">☀</span><span class="ts-icon ts-moon">☾</span><i class="ts-knob"></i></button>
+</div>
+
+<div class="settings-row">
+<div>
+<div class="settings-label">Справка</div>
+<div class="settings-description">Инструкция по работе с календарём</div>
+</div>
+<button id="help" class="small">Как пользоваться</button>
+</div>
+
+<div class="settings-row">
+<div>
+<div class="settings-label">Справка: резервная копия</div>
+<div class="settings-description">Как сохранить и перенести данные</div>
+</div>
+<button id="helpBackup" class="small">Как работает</button>
+</div>
+
+<div class="settings-row">
+<div>
+<div class="settings-label">Задать дату отчета 180 дней</div>
+<div class="settings-description">Дата, с которой начинается отсчёт 180 дней. <span id="reportPeriod"></span></div>
+</div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+<input id="reportDate" type="date" aria-label="Дата начала отсчёта">
+</div>
+</div>
+
+<div class="settings-row">
+<div>
+<div class="settings-label">Можно находиться до</div>
+<div class="settings-description" id="stayUntilNote">При непрерывном пребывании</div>
+</div>
+<div class="settings-value" id="stayUntil">—</div>
+</div>
+
+<div class="settings-row">
+<div>
+<div class="settings-label">Очистка календаря</div>
+<div class="settings-description">Удалить все поездки из календаря</div>
+</div>
+<button id="clearTrips" class="small danger">Очистить</button>
+</div>
+
+<div class="settings-row">
+<div>
+<div class="settings-label">Резервная копия</div>
+<div class="settings-description">Перенос данных на другое устройство или браузер</div>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button id="backupShare" class="small">Поделиться</button>
+<button id="backupFile" class="small">Загрузить из файла</button>
+<input id="backupFileInput" type="file" accept=".json,application/json,text/plain" class="hidden">
+<button id="backupCopy" class="small">Скопировать данные</button>
+<button id="backupPaste" class="small">Вставить данные</button>
+</div>
+</div>
+
+<div class="settings-row">
+<div>
+<div class="settings-label">О календаре</div>
+<div class="settings-description">Календарь считает, сколько дней иностранный гражданин может находиться на территории Кыргызстана по пограничным правилам для граждан ЕАЭС: не более 90 дней в течение любых 180 дней. Подсчёт календарных дней включает даты въезда и выезда. Полные сутки рассчитываются отдельно по указанному времени. Данные сохраняются в этом браузере на устройстве.</div>
+</div>
+</div>
+
+</div>
+
+
+
+</section>
+
+</div>
+
+<dialog id="editDialog">
+<div class="modal">
+<h2 id="dialogTitle">Действия с датой</h2>
+<p id="dialogSubtitle"></p>
+
+<div id="newActions">
+<div class="choices">
+<button class="choice c-arrival" id="setArrival"><strong>↘ Прибытие</strong><small>Начало поездки</small></button>
+<button class="choice c-departure" id="setDeparture"><strong>↗ Выезд</strong><small>Завершить поездку</small></button>
+</div>
+<div class="field">
+<label for="newTime">Время события</label>
+<input id="newTime" type="time" value="12:00">
+</div>
+<div class="sub" id="newHint">
+Выберите прибытие. Затем отметьте дату выезда — промежуточные дни заполнятся автоматически.
+</div>
+</div>
+
+<div id="existingActions" class="hidden">
+<div class="choices">
+<button class="choice c-arrival" id="editArrival"><strong>↘ Изменить прибытие</strong><small>Дата и время начала</small></button>
+<button class="choice c-departure" id="editDeparture"><strong>↗ Изменить выезд</strong><small>Дата и время окончания</small></button>
+</div>
+
+<div class="field"><label for="arrivalDate">Дата прибытия</label><input id="arrivalDate" type="date"></div>
+<div class="field"><label for="arrivalTime">Время прибытия</label><input id="arrivalTime" type="time"></div>
+<div class="field"><label for="departureDate">Дата выезда</label><input id="departureDate" type="date"></div>
+<div class="field"><label for="departureTime">Время выезда</label><input id="departureTime" type="time"></div>
+
+<div class="modal-actions" style="justify-content:space-between">
+<button id="deleteTrip" class="danger small">Удалить поездку</button>
+<button id="saveTrip" class="primary small">Сохранить изменения</button>
+</div>
+</div>
+
+<div class="modal-actions" id="closeActions">
+<button id="closeDialog" class="small">Закрыть</button>
+</div>
+</div>
+</dialog>
+
+<dialog id="confirmDialog">
+<div class="modal">
+<h2>Удалить поездку?</h2>
+<p>Все выделенные даты этой поездки будут сняты. Это действие можно отменить.</p>
+<div class="modal-actions">
+<button id="cancelDelete">Отмена</button>
+<button id="confirmDelete" class="danger">Удалить</button>
+</div>
+</div>
+</dialog>
+
+<dialog id="helpDialog">
+<div class="modal">
+<h2>Как пользоваться</h2>
+<p>
+<b>1.</b> Нажмите и удерживайте дату, выберите «Прибытие» и укажите время.<br><br>
+<b>2.</b> Нажмите и удерживайте дату выезда, выберите «Выезд». Все даты между ними отметятся автоматически.<br><br>
+<b>3.</b> Для изменения или удаления поездки удерживайте любую её дату.<br><br>
+Календарь рассчитан на правило «90 дней в течение 180 дней» для иностранных граждан в Кыргызстане (по пограничным правилам для граждан ЕАЭС). Учитываются 180 календарных дат: сегодня (или выбранная в настройках дата отчёта) и 179 предыдущих дней.
+</p>
+<div class="modal-actions">
+<button id="closeHelp" class="primary">Понятно</button>
+</div>
+</div>
+</dialog>
+
+<dialog id="helpBackupDialog">
+<div class="modal">
+<h2>Резервная копия</h2>
+<p>
+Календарь хранит поездки только в этом браузере на этом устройстве. Если очистить данные браузера или открыть календарь на другом устройстве, поездок там не будет. Чтобы этого избежать, используйте резервную копию.<br><br>
+<b>Как сохранить и перенести данные</b><br><br>
+<b>1.</b> Нажмите «Скопировать данные». Все поездки и дата отчёта копируются как обычный текст. Если браузер не разрешил копирование, откроется окно с текстом, его нужно выделить и скопировать вручную.<br><br>
+<b>2.</b> Отправьте этот текст себе: в мессенджер, на почту или сохраните в заметках.<br><br>
+<b>3.</b> На другом устройстве откройте календарь, в настройках нажмите «Вставить данные», вставьте текст в поле и нажмите «Загрузить данные».<br><br>
+<b>Через файл:</b> кнопка «Поделиться» открывает системное окно, где можно отправить файл в Telegram, WhatsApp, Gmail, на Google Drive или в другое приложение. Если окна нет, файл просто скачается. На другом устройстве нажмите «Загрузить из файла» и выберите этот файл.<br><br>
+<b>Важно:</b> загрузка заменяет все текущие поездки на устройстве, а не добавляет к ним. Если на устройстве уже есть свои поездки, сначала скопируйте их. Делайте копию время от времени, например после каждой поездки.
+</p>
+<div class="modal-actions">
+<button id="closeHelpBackup" class="primary">Понятно</button>
+</div>
+</div>
+</dialog>
+
+<dialog id="askDialog">
+<div class="modal">
+<h2 id="askTitle"></h2>
+<p id="askText"></p>
+<div class="modal-actions">
+<button id="askCancel">Отмена</button>
+<button id="askOk" class="primary">Подтвердить</button>
+</div>
+</div>
+</dialog>
+
+<dialog id="backupDialog">
+<div class="modal">
+<h2 id="backupTitle">Резервная копия</h2>
+<p id="backupHint"></p>
+<textarea id="backupText" class="backup-text" spellcheck="false"></textarea>
+<div class="modal-actions">
+<button id="backupClose" class="small">Закрыть</button>
+<button id="backupApply" class="primary small">Загрузить данные</button>
+</div>
+</div>
+</dialog>
+
+<div id="toast" class="toast hidden"></div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+let now=new Date();
+let view=new Date(now.getFullYear(),now.getMonth(),1);
+let selectedDate=null,selectedTripId=null,deleteId=null,pendingArrival=null,undoStack=[];
+let showFullDays=false;
+const todayKey=()=>key(new Date());
+let reportDate=localStorage.getItem('stay90180_report')||'';
+
+let trips=[];
+try{trips=JSON.parse(localStorage.getItem('stay90180_trips')||'[]')}catch(e){trips=[]}
+
+{const o=trips.find(t=>!t.end);if(o)pendingArrival={date:o.start,id:o.id}}
+function syncPending(){const o=trips.find(t=>!t.end);pendingArrival=o?{date:o.start,id:o.id}:null}
+
+const pad=n=>String(n).padStart(2,'0');
+const key=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const datePlus=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const fmt=d=>d.toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
+const nowTime=()=>{const n=new Date();return pad(n.getHours())+':'+pad(n.getMinutes())};
+const timeStamp=(date,time)=>new Date(`${date}T${time||'12:00'}:00`).getTime();
+
+const save=()=>localStorage.setItem('stay90180_trips',JSON.stringify(trips));
+
+function snapshot(){
+undoStack.push(JSON.stringify(trips));
+if(undoStack.length>20)undoStack.shift();
+}
+
+function toast(s){
+$('toast').textContent=s;
+$('toast').classList.remove('hidden');
+clearTimeout(toast.t);
+toast.t=setTimeout(()=>$('toast').classList.add('hidden'),2500);
+}
+
+function tripFor(date){
+const tk=key(now);
+return trips.find(t=>date>=t.start&&date<=(t.end||(t.start<=tk?tk:t.start)));
+}
+
+function render(){
+syncPending();
+$('monthName').textContent=view.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+$('week').innerHTML=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(x=>`<div>${x}</div>`).join('');
+
+const first=new Date(view.getFullYear(),view.getMonth(),1);
+const offset=(first.getDay()+6)%7;
+const total=new Date(view.getFullYear(),view.getMonth()+1,0).getDate();
+
+let cells=Array(offset).fill('<div class="day blank"></div>');
+
+for(let n=1;n<=total;n++){
+const d=new Date(view.getFullYear(),view.getMonth(),n);
+const k=key(d);
+const t=tripFor(k);
+const cls=['day'];
+
+if(t)cls.push('trip');
+if(t&&!t.end)cls.push('open');
+if(k===key(now))cls.push('today');
+if(d>now)cls.push('future');
+if(t&&k===t.start)cls.push('arrival');
+if(t&&t.end&&k===t.end)cls.push('departure');
+
+let marker='';
+
+cells.push(`<div class="${cls.join(' ')}" data-date="${k}" aria-label="${fmt(d)}"><span class="n">${n}</span>${marker?`<span class="dot">${marker}</span>`:''}</div>`);
+}
+
+$('days').innerHTML=cells.join('');
+$('days').querySelectorAll('[data-date]').forEach(el=>attachLongPress(el,el.dataset.date));
+updateStats();
+}
+
+const dayMs=86400000;
+function windowInfo(){
+const t=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+if(reportDate&&datePlus(parse(reportDate),179)<t){
+const st0=parse(reportDate);
+const k=Math.floor(Math.round((t-st0)/dayMs)/180);
+reportDate=key(datePlus(st0,180*k));
+localStorage.setItem('stay90180_report',reportDate);
+}
+if(reportDate){
+const st=parse(reportDate),fe=datePlus(st,179);
+return{start:st,end:fe<t?fe:t,fixedEnd:fe,fixed:true,today:t};
+}
+return{start:datePlus(t,-179),end:t,fixedEnd:t,fixed:false,today:t};
+}
+
+function updateStats(){
+const w=windowInfo();
+let count=0;
+for(let d=new Date(w.start);key(d)<=key(w.end);d=datePlus(d,1)){
+if(tripFor(key(d)))count++;
+}
+
+const winStart=w.start.getTime();
+const winEnd=Math.min(Date.now(),datePlus(w.fixedEnd,1).getTime());
+let ms=0;
+trips.forEach(t=>{
+const a=Math.max(winStart,timeStamp(t.start,t.startTime));
+const b=Math.min(winEnd,t.end?timeStamp(t.end,t.endTime):Date.now());
+if(b>a)ms+=b-a;
+});
+const full=Math.floor(ms/dayMs);
+
+const val=showFullDays?full:count;
+const unit=showFullDays?'сут.':'дн.';
+const remaining=Math.max(0,90-val);
+
+$('statTitle').textContent=(showFullDays?'Полные сутки':'Календарные дни')+' за последние 180 дней';
+$('calendarCount').textContent=`${val} / 90`;
+$('calendarLeft').textContent=val>90?`Превышение на ${val-90} ${unit}`:`Осталось ${remaining} ${unit}`;
+$('calendarLeft').className='stat-foot '+(val>=90?'red':'green');
+$('bar').style.width=Math.min(100,val/90*100)+'%';
+$('bar').style.background=remaining<=5?'var(--red)':remaining<=15?'var(--yellow)':'var(--bar-green)';
+
+const pl=$('periodLeft');
+if(w.fixed){
+const left=Math.round((w.fixedEnd-w.today)/dayMs);
+pl.textContent=left<=0?'Последний день периода':`До конца периода: ${left} дн.`;
+}else pl.textContent='';
+
+updateSettingsInfo(w);
+}
+
+function updateSettingsInfo(w){
+$('reportPeriod').textContent=w.fixed?
+`Период: ${fmt(w.start)} — ${fmt(w.fixedEnd)}.`:
+`Сейчас: последние 180 дней (с ${fmt(w.start)}).`;
+if(document.activeElement!==$('reportDate'))$('reportDate').value=key(w.start);
+
+const T=w.today;
+const inTrip=!!tripFor(key(T));
+const countAt=(D,from)=>{
+const s0=w.fixed?w.start:datePlus(D,-179);
+let c=0;
+for(let d=new Date(s0);d<=D;d=datePlus(d,1)){
+if(tripFor(key(d))||d>=from)c++;
+}
+return c;
+};
+
+let text='—',note=inTrip?'При непрерывном пребывании':'Если въехать сегодня';
+if(w.fixed&&T>w.fixedEnd){
+note='Заданный период отчёта закончился';
+}else if(w.fixed&&T<w.start){
+note='Период отчёта ещё не начался';
+}else if(countAt(T,T)>90){
+text='Лимит исчерпан';
+note='';
+if(!w.fixed){
+for(let i=1;i<=400;i++){
+const E=datePlus(T,i);
+if(countAt(E,E)<=90){note=`Въезд возможен с ${fmt(E)}`;break}
+}
+}
+}else{
+let last=T;
+for(let i=1;i<=400;i++){
+const D=datePlus(T,i);
+if(w.fixed&&D>w.fixedEnd)break;
+if(countAt(D,T)<=90)last=D;else break;
+}
+text=fmt(last);
+}
+$('stayUntil').textContent=text;
+$('stayUntilNote').textContent=note;
+}
+
+function attachLongPress(el,date){
+let timer=null,fired=false,startX=0,startY=0;
+
+const begin=e=>{
+if(e.type==='mousedown'&&e.button!==0)return;
+fired=false;
+startX=e.clientX??0;
+startY=e.clientY??0;
+timer=setTimeout(()=>{
+fired=true;
+openDate(date);
+},550);
+};
+
+const cancel=()=>{
+if(timer)clearTimeout(timer);
+timer=null;
+};
+
+el.addEventListener('pointerdown',begin);
+el.addEventListener('pointerup',cancel);
+el.addEventListener('pointerleave',cancel);
+el.addEventListener('pointercancel',cancel);
+
+el.addEventListener('pointermove',e=>{
+if(Math.abs(e.clientX-startX)>12||Math.abs(e.clientY-startY)>12)cancel();
+});
+
+el.addEventListener('contextmenu',e=>e.preventDefault());
+el.addEventListener('click',e=>{
+e.preventDefault();
+if(fired){fired=false;return}
+});
+}
+
+function openDate(date){
+selectedDate=date;
+const t=tripFor(date);
+selectedTripId=t?.id||null;
+
+$('dialogTitle').textContent=fmt(parse(date));
+$('dialogSubtitle').textContent=t?'Дата входит в существующую поездку.':'Выберите действие для этой даты.';
+
+$('newActions').classList.toggle('hidden',!!t);
+$('existingActions').classList.toggle('hidden',!t);
+$('closeActions').classList.toggle('hidden',!!t);
+
+if(t){
+$('arrivalDate').value=t.start;
+$('arrivalTime').value=t.startTime||'12:00';
+$('departureDate').value=t.end||date;
+$('departureTime').value=t.endTime||nowTime();
+$('departureDate').disabled=false;
+$('departureTime').disabled=false;
+$('editDeparture').disabled=false;
+}else{
+$('newTime').value=nowTime();
+$('newHint').textContent=pendingArrival?
+`Ожидается выезд после ${fmt(parse(pendingArrival.date))}. Выберите дату выезда.`:
+'Сначала выберите прибытие. Затем отметьте дату выезда — промежуточные дни заполнятся автоматически.';
+$('setDeparture').disabled=!pendingArrival;
+}
+
+$('editDialog').showModal();
+}
+
+function closeEdit(){$('editDialog').close()}
+
+function setArrival(){
+if(pendingArrival){
+if(!confirm('Предыдущая поездка ещё не завершена. Начать новую поездку?'))return;
+pendingArrival=null;
+}
+
+snapshot();
+
+const trip={
+id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),
+start:selectedDate,
+startTime:$('newTime').value||'12:00',
+end:null,
+endTime:null
+};
+
+trips.push(trip);
+pendingArrival={date:selectedDate,id:trip.id};
+save();
+closeEdit();
+render();
+toast('Прибытие сохранено. Теперь отметьте дату выезда.');
+}
+
+function setDeparture(){
+if(!pendingArrival)return;
+if(selectedDate<pendingArrival.date){
+toast('Дата выезда не может быть раньше прибытия');
+return;
+}
+
+snapshot();
+const t=trips.find(x=>x.id===pendingArrival.id);
+if(!t)return;
+
+t.end=selectedDate;
+t.endTime=$('newTime').value||'12:00';
+pendingArrival=null;
+save();
+closeEdit();
+render();
+toast('Поездка сохранена. Промежуточные дни отмечены.');
+}
+
+$('setArrival').onclick=setArrival;
+$('setDeparture').onclick=setDeparture;
+
+$('editArrival').onclick=()=>{
+$('arrivalDate').focus();
+$('arrivalDate').showPicker?.();
+};
+
+$('editDeparture').onclick=()=>{
+if(!$('departureDate').disabled){
+$('departureDate').focus();
+$('departureDate').showPicker?.();
+}
+};
+
+$('saveTrip').onclick=()=>{
+const t=trips.find(x=>x.id===selectedTripId);
+if(!t)return;
+
+const a=$('arrivalDate').value;
+const b=$('departureDate').value;
+const at=$('arrivalTime').value;
+const bt=$('departureTime').value;
+
+if(!a||!b){toast('Укажите обе даты поездки');return}
+if(b<a){toast('Выезд не может быть раньше прибытия');return}
+
+if(trips.some(x=>x.id!==t.id&&!(b<x.start||(x.end&&a>x.end)))){
+toast('Даты пересекаются с другой поездкой');
+return;
+}
+
+snapshot();
+t.start=a;
+t.startTime=at||'12:00';
+t.end=b;
+t.endTime=bt||'12:00';
+
+save();
+closeEdit();
+render();
+toast('Изменения сохранены');
+};
+
+$('deleteTrip').onclick=()=>{
+deleteId=selectedTripId;
+$('confirmDialog').showModal();
+};
+
+$('confirmDelete').onclick=()=>{
+snapshot();
+trips=trips.filter(t=>t.id!==deleteId);
+if(pendingArrival?.id===deleteId)pendingArrival=null;
+save();
+$('confirmDialog').close();
+closeEdit();
+render();
+toast('Поездка удалена');
+};
+
+$('cancelDelete').onclick=()=>$('confirmDialog').close();
+$('closeDialog').onclick=closeEdit;
+
+$('prev').onclick=()=>{
+view=new Date(view.getFullYear(),view.getMonth()-1,1);
+render();
+};
+
+$('next').onclick=()=>{
+view=new Date(view.getFullYear(),view.getMonth()+1,1);
+render();
+};
+
+$('today').onclick=()=>{
+view=new Date(now.getFullYear(),now.getMonth(),1);
+render();
+};
+
+/* Переключатель Дни / Сутки */
+
+$('toggleMeasure').onclick=()=>{
+showFullDays=!showFullDays;
+$('toggleMeasure').textContent=showFullDays?'Сутки':'Дни';
+$('statTitle').textContent=showFullDays?'Календарные сутки за последние 180 дней':'Календарные дни за последние 180 дней';
+updateStats();
+};
+
+/* Одна кнопка: шестерёнка <-> домик */
+
+let inSettings=false;
+$('openSettings').onclick=()=>{
+inSettings=!inSettings;
+$('homePage').classList.toggle('hidden',inSettings);
+$('settingsPage').classList.toggle('hidden',!inSettings);
+$('iconGear').classList.toggle('hidden',inSettings);
+$('iconHome').classList.toggle('hidden',!inSettings);
+$('pageTitle').textContent=inSettings?'Настройки':'Календарь 90/180';
+$('pageSub').textContent=inSettings?'Управление приложением':'Срок пребывания иностр-го гражданина в ЕАЭС';
+$('openSettings').title=inSettings?'Главная':'Настройки';
+};
+
+/* Настройки */
+
+function ask(title,text){
+return new Promise(res=>{
+const d=$('askDialog');
+let r=false;
+$('askTitle').textContent=title;
+$('askText').textContent=text;
+$('askOk').onclick=()=>{r=true;d.close()};
+$('askCancel').onclick=()=>d.close();
+d.onclose=()=>res(r);
+d.showModal();
+});
+}
+
+function revertReportInput(){$('reportDate').value=key(windowInfo().start)}
+
+$('reportDate').onchange=async()=>{
+const v=$('reportDate').value;
+if(!v){revertReportInput();return}
+if(!await ask('Изменить дату отчёта?',`Отсчёт 180 дней начнётся с ${fmt(parse(v))}.`)){revertReportInput();return}
+reportDate=v;
+localStorage.setItem('stay90180_report',reportDate);
+updateStats();
+toast('Дата отчёта изменена');
+};
+
+$('clearTrips').onclick=async()=>{
+if(!trips.length){toast('Календарь уже пуст');return}
+if(!await ask('Очистить календарь?','Все поездки будут удалены. Перед этим можно скопировать данные в разделе «Резервная копия».'))return;
+trips=[];
+save();
+render();
+toast('Календарь очищен');
+};
+
+/* Резервная копия */
+
+const backupJSON=()=>JSON.stringify({app:'stay90180',trips,reportDate});
+
+function openBackup(mode){
+const copy=mode==='copy';
+$('backupTitle').textContent=copy?'Скопировать данные':'Вставить данные';
+$('backupHint').textContent=copy?'Выделите весь текст и скопируйте его.':'Вставьте ранее скопированные данные и нажмите «Загрузить данные». Текущие данные будут заменены.';
+$('backupText').value=copy?backupJSON():'';
+$('backupText').readOnly=copy;
+$('backupApply').classList.toggle('hidden',copy);
+$('backupDialog').showModal();
+if(copy){$('backupText').focus();$('backupText').select()}
+}
+
+$('backupCopy').onclick=async()=>{
+try{
+await navigator.clipboard.writeText(backupJSON());
+toast('Данные скопированы');
+}catch(e){openBackup('copy')}
+};
+$('backupPaste').onclick=()=>openBackup('paste');
+$('backupClose').onclick=()=>$('backupDialog').close();
+
+function importBackup(raw){
+let data;
+try{data=JSON.parse(String(raw).trim())}catch(e){toast('Не удалось прочитать данные');return false}
+const list=Array.isArray(data)?data:data&&data.trips;
+const okDate=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v);
+if(!Array.isArray(list)||!list.every(t=>t&&okDate(t.start)&&(!t.end||okDate(t.end)))){toast('Неверный формат данных');return false}
+if(!confirm('Заменить текущие данные загруженными?'))return false;
+trips=list.map(t=>({id:t.id||(crypto.randomUUID?crypto.randomUUID():String(Math.random())),start:t.start,startTime:t.startTime||'12:00',end:t.end||null,endTime:t.end?(t.endTime||'12:00'):null}));
+reportDate=okDate(data&&data.reportDate)?data.reportDate:'';
+if(reportDate)localStorage.setItem('stay90180_report',reportDate);else localStorage.removeItem('stay90180_report');
+save();
+render();
+toast('Данные загружены');
+return true;
+}
+
+$('backupApply').onclick=()=>{
+if(importBackup($('backupText').value))$('backupDialog').close();
+};
+
+const backupFileName=()=>'календарь-90-180-'+key(new Date())+'.json';
+
+$('backupShare').onclick=async()=>{
+const text=backupJSON();
+let file=null;
+try{file=new File([text],backupFileName(),{type:'application/json'})}catch(e){}
+try{
+if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+await navigator.share({files:[file],title:'Календарь 90/180'});
+return;
+}
+if(navigator.share){
+await navigator.share({title:'Календарь 90/180',text});
+return;
+}
+}catch(e){
+if(e&&e.name==='AbortError')return;
+}
+try{
+const url=URL.createObjectURL(new Blob([text],{type:'application/json'}));
+const a=document.createElement('a');
+a.href=url;a.download=backupFileName();
+document.body.appendChild(a);a.click();a.remove();
+setTimeout(()=>URL.revokeObjectURL(url),1000);
+toast('Файл сохранён в загрузки');
+}catch(e){openBackup('copy')}
+};
+
+$('backupFile').onclick=()=>$('backupFileInput').click();
+$('backupFileInput').onchange=()=>{
+const f=$('backupFileInput').files[0];
+$('backupFileInput').value='';
+if(!f)return;
+const r=new FileReader();
+r.onload=()=>importBackup(r.result);
+r.onerror=()=>toast('Не удалось прочитать файл');
+r.readAsText(f);
+};
+
+$('help').onclick=()=>$('helpDialog').showModal();
+$('closeHelp').onclick=()=>$('helpDialog').close();
+$('helpBackup').onclick=()=>$('helpBackupDialog').showModal();
+$('closeHelpBackup').onclick=()=>$('helpBackupDialog').close();
+
+function setTheme(v){
+v=v==='dark'?'dark':'light';
+document.documentElement.dataset.theme=v;
+$('themeSwitch').setAttribute('aria-checked',v==='dark');
+localStorage.setItem('stay90180_theme',v);
+}
+
+setTheme(localStorage.getItem('stay90180_theme'));
+$('themeSwitch').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+
+function refreshNow(){const n=new Date();if(key(n)!==key(now)){now=n;render()}}
+setInterval(refreshNow,60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshNow()});
+
+render();
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(error => {
+      console.warn('Не удалось зарегистрировать Service Worker:', error);
+    });
+  });
+}
+</script>
+</body>
+</html>
