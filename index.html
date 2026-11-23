@@ -846,29 +846,41 @@ if(importBackup($('backupText').value))$('backupDialog').close();
 const backupFileName=()=>'календарь-90-180-'+key(new Date())+'.json';
 
 $('backupShare').onclick=async()=>{
-const text=backupJSON();
-let file=null;
-try{file=new File([text],backupFileName(),{type:'application/json'})}catch(e){}
-try{
-if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
-await navigator.share({files:[file],title:'Календарь 90/180'});
-return;
-}
-if(navigator.share){
-await navigator.share({title:'Календарь 90/180',text});
-return;
-}
-}catch(e){
-if(e&&e.name==='AbortError')return;
-}
-try{
-const url=URL.createObjectURL(new Blob([text],{type:'application/json'}));
-const a=document.createElement('a');
-a.href=url;a.download=backupFileName();
-document.body.appendChild(a);a.click();a.remove();
-setTimeout(()=>URL.revokeObjectURL(url),1000);
-toast('Файл сохранён в загрузки');
-}catch(e){openBackup('copy')}
+ const text=backupJSON();
+ let file=null;
+ try{file=new File([text],backupFileName(),{type:'application/json'})}catch(e){}
+ if(navigator.share){
+  if(file){
+   const data={title:'Календарь 90/180',files:[file]};
+   let canTry=true;
+   try{
+    if(navigator.canShare&&!navigator.canShare(data))canTry=false;
+   }catch(e){canTry=false}
+   if(canTry){
+    try{
+     await navigator.share(data);
+     return;
+    }catch(e){
+     if(e&&e.name==='AbortError')return;
+    }
+   }
+  }
+  try{
+   await navigator.share({title:'Календарь 90/180',text});
+   toast('Открыто меню отправки текста. Для передачи файла используйте «Загрузить из файла» после сохранения копии.');
+   return;
+  }catch(e){
+   if(e&&e.name==='AbortError')return;
+  }
+ }
+ try{
+  const url=URL.createObjectURL(new Blob([text],{type:'application/json'}));
+  const a=document.createElement('a');
+  a.href=url;a.download=backupFileName();
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast('Файл сохранён в загрузки');
+ }catch(e){openBackup('copy')}
 };
 
 $('backupFile').onclick=()=>$('backupFileInput').click();
