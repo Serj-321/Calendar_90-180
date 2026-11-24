@@ -246,7 +246,7 @@ dialog::backdrop{background:#10182880}
 <div style="display:flex;gap:8px;flex-wrap:wrap">
 <button id="backupShare" class="small">Поделиться</button>
 <button id="backupFile" class="small">Загрузить из файла</button>
-<input id="backupFileInput" type="file" tabindex="-1" aria-hidden="true" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+<input id="backupFileInput" type="file" accept=".txt,.json,text/plain,application/json" tabindex="-1" aria-hidden="true" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
 <button id="backupCopy" class="small">Скопировать данные</button>
 <button id="backupPaste" class="small">Вставить данные</button>
 </div>
@@ -345,6 +345,7 @@ dialog::backdrop{background:#10182880}
 <b>Через файл</b><br><br>
 <b>1.</b> Нажмите «Поделиться» и выберите приложение: Telegram, WhatsApp, Gmail, Google Drive или другое. Отправьте файл себе, например в «Избранное» Telegram.<br><br>
 <b>2.</b> На другом устройстве сохраните полученный файл и в календаре нажмите «Загрузить из файла». Откроется системное окно выбора файла: найдите файл в «Загрузках», на Google Drive или в другом месте.<br><br>
+<b>Прямо из Telegram или WhatsApp.</b> Если календарь установлен как приложение (меню Chrome → «Установить приложение»), нажмите на файл копии в чате, выберите «Поделиться» и в списке «Календарь 90/180». Календарь откроется и предложит загрузить данные.<br><br>
 <b>Через текст</b><br><br>
 Если «Поделиться» отправляет только текст или не открывается, нажмите «Скопировать данные» и отправьте текст себе. На другом устройстве нажмите «Вставить данные», вставьте текст и нажмите «Загрузить данные».<br><br>
 <b>Важно:</b> загрузка заменяет все текущие поездки на устройстве, а не добавляет к ним, и отменить её нельзя. Если на устройстве уже есть свои поездки, сначала сохраните их копию.
@@ -918,6 +919,20 @@ setInterval(refreshNow,60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshNow()});
 
 render();
+
+/* Приём резервной копии из окна «Поделиться» (Telegram, WhatsApp и др.) */
+(async()=>{
+if(!new URLSearchParams(location.search).has('shared'))return;
+history.replaceState(null,'',location.pathname);
+try{
+const r=await caches.match('./shared-backup.txt');
+if(!r){toast('Не удалось получить файл');return}
+const text=await r.text();
+for(const k of await caches.keys()){(await caches.open(k)).delete('./shared-backup.txt')}
+const a=text.indexOf('{'),b=text.lastIndexOf('}');
+importBackup(a>=0&&b>a?text.slice(a,b+1):text);
+}catch(e){toast('Не удалось получить файл')}
+})();
 })();
 </script>
 <script>
