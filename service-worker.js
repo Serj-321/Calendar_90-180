@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calendar-90-180-v1';
+const CACHE_NAME = 'calendar-90-180-v2';
 const APP_FILES = [
   './',
   './index.html',
@@ -26,8 +26,34 @@ self.addEventListener('activate', event => {
   );
 });
 
+const SHARED_KEY = './shared-backup.txt';
+
+async function handleShareTarget(request) {
+  try {
+    const form = await request.formData();
+    let content = '';
+    const file = form.get('backup');
+    if (file && typeof file !== 'string') content = await file.text();
+    if (!content) content = String(form.get('text') || '');
+    if (content) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(SHARED_KEY, new Response(content, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } }));
+    }
+  } catch (error) {
+    // страница сообщит, что файл получить не удалось
+  }
+  return Response.redirect(new URL('./?shared=1', self.registration.scope).href, 303);
+}
+
 self.addEventListener('fetch', event => {
   const request = event.request;
+  const shareUrl = new URL('./share-target', self.registration.scope);
+
+  if (request.method === 'POST' && new URL(request.url).pathname === shareUrl.pathname) {
+    event.respondWith(handleShareTarget(request));
+    return;
+  }
+
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
